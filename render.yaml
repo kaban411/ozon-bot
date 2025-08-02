@@ -1,0 +1,26 @@
+services:
+  - type: worker
+    name: ozon-bot
+    env: python
+    repo: <YOUR_GITHUB_REPO_URL>
+    branch: main
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: OZON_CLIENT_ID
+        sync: false
+      - key: OZON_API_KEY
+        sync: false
+      - key: OZON_PERF_CLIENT_ID
+        sync: false
+      - key: OZON_PERF_CLIENT_SECRET
+        sync: false
+      - key: SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_SA_JSON
+        sync: false

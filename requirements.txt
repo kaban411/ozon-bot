@@ -1,0 +1,5 @@
+aiogram>=3.4
+httpx[async]>=0.27
+gspread>=6.0
+google-auth>=2.24
+python-dotenv>=1.0
