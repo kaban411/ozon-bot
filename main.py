@@ -1,7 +1,4 @@
-import asyncio
-import json
-import os
-import datetime as dt
+import asyncio, json, os, datetime as dt
 from typing import Any
 
 import httpx
@@ -10,7 +7,6 @@ from google.oauth2.service_account import Credentials
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.client.default import DefaultBotProperties   # ← добавили
 
 # ─── ENV ───────────────────────────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN      = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -28,7 +24,7 @@ GOOGLE_SA_JSON          = json.loads(os.getenv("GOOGLE_SA_JSON"))
 # ─── Google Sheets ─────────────────────────────────────────────────────────────
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-def get_sheet() -> gspread.Spreadsheet:
+def get_sheet():
     creds = Credentials.from_service_account_info(GOOGLE_SA_JSON, scopes=SCOPES)
     gc = gspread.authorize(creds)
     return gc.open_by_key(SPREADSHEET_ID)
@@ -73,17 +69,14 @@ async def get_perf_token() -> str:
         return r.json()["access_token"]
 
 # ─── Telegram Bot ──────────────────────────────────────────────────────────────
-bot = Bot(
-    token=TELEGRAM_BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)   # ← изменили
-)
-dp = Dispatcher()
+bot = Bot(token=TELEGRAM_BOT_TOKEN, parse_mode=ParseMode.HTML)   # ← однострочный, «старый» способ
+dp  = Dispatcher()
 
 @dp.message(Command("ping"))
-async def cmd_ping(m: types.Message) -> None:
+async def cmd_ping(m: types.Message):
     ts = await ping_sheet()
     seller = await ozon_seller_ping()
-    token = await get_perf_token()
+    token  = await get_perf_token()
     await bot.send_message(
         TELEGRAM_CHAT_ID,
         f"✅ <b>pong!</b>\n"
@@ -93,7 +86,7 @@ async def cmd_ping(m: types.Message) -> None:
     )
 
 # ─── Entrypoint ────────────────────────────────────────────────────────────────
-async def main() -> None:
+async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
