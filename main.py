@@ -1,26 +1,34 @@
-import asyncio, json, os, datetime as dt
+import asyncio
+import json
+import os
+import datetime as dt
 from typing import Any
+
 import httpx
 import gspread
 from google.oauth2.service_account import Credentials
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram import types
+from aiogram.client.default import DefaultBotProperties   # ← добавили
 
-# --- ENV vars (Render will inject) ---
+# ─── ENV ───────────────────────────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN      = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID        = int(os.getenv("TELEGRAM_CHAT_ID"))
+
 OZON_CLIENT_ID          = os.getenv("OZON_CLIENT_ID")
 OZON_API_KEY            = os.getenv("OZON_API_KEY")
+
 OZON_PERF_CLIENT_ID     = os.getenv("OZON_PERF_CLIENT_ID")
 OZON_PERF_CLIENT_SECRET = os.getenv("OZON_PERF_CLIENT_SECRET")
+
 SPREADSHEET_ID          = os.getenv("SPREADSHEET_ID")
 GOOGLE_SA_JSON          = json.loads(os.getenv("GOOGLE_SA_JSON"))
 
-# --- Google Sheets ---
+# ─── Google Sheets ─────────────────────────────────────────────────────────────
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-def get_sheet():
+
+def get_sheet() -> gspread.Spreadsheet:
     creds = Credentials.from_service_account_info(GOOGLE_SA_JSON, scopes=SCOPES)
     gc = gspread.authorize(creds)
     return gc.open_by_key(SPREADSHEET_ID)
@@ -35,8 +43,9 @@ async def ping_sheet() -> str:
     ws.update("A1", [["last_ping", ts]])
     return ts
 
-# --- Ozon Seller ---
+# ─── Ozon Seller API ───────────────────────────────────────────────────────────
 SELLER_BASE = "https://api-seller.ozon.ru"
+
 async def ozon_seller_ping() -> Any:
     url = f"{SELLER_BASE}/v1/warehouse/list"
     headers = {
@@ -49,8 +58,9 @@ async def ozon_seller_ping() -> Any:
         r.raise_for_status()
         return r.json()
 
-# --- Ozon Performance ---
+# ─── Ozon Performance API ──────────────────────────────────────────────────────
 PERF_AUTH = "https://performance.ozon.ru/api/client/token"
+
 async def get_perf_token() -> str:
     payload = {
         "client_id": OZON_PERF_CLIENT_ID,
@@ -62,12 +72,15 @@ async def get_perf_token() -> str:
         r.raise_for_status()
         return r.json()["access_token"]
 
-# --- Telegram Bot ---
-bot = Bot(token=TELEGRAM_BOT_TOKEN, parse_mode=ParseMode.HTML)
-dp  = Dispatcher()
+# ─── Telegram Bot ──────────────────────────────────────────────────────────────
+bot = Bot(
+    token=TELEGRAM_BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)   # ← изменили
+)
+dp = Dispatcher()
 
 @dp.message(Command("ping"))
-async def cmd_ping(m: types.Message):
+async def cmd_ping(m: types.Message) -> None:
     ts = await ping_sheet()
     seller = await ozon_seller_ping()
     token = await get_perf_token()
@@ -79,7 +92,8 @@ async def cmd_ping(m: types.Message):
         f"• Perf API token: <code>{token[:12]}…</code>"
     )
 
-async def main():
+# ─── Entrypoint ────────────────────────────────────────────────────────────────
+async def main() -> None:
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
